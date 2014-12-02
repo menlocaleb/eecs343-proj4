@@ -35,6 +35,15 @@ int main(int argc, char ** argv) {
     // Read the file one block at a time. In the real world, there would be a
     // lot of error-handling code here.
     __u32 bytes_left;
+    // for (int i = 0; i < EXT2_NDIR_BLOCKS; i++) {
+    //     bytes_left = size - bytes_read;
+    //     if (bytes_left == 0) break;
+    //     __u32 bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
+    //     void * block = get_block(fs, target_ino->i_block[i]);
+    //     memcpy(buf + bytes_read, block, bytes_to_read);
+    //     bytes_read += bytes_to_read;
+    // }
+
 
 
     void* block = NULL;
