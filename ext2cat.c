@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
-
+// #include <assert.h>
 #include "ext2_access.h"
 #include "mmapfs.h"
 
@@ -32,13 +32,64 @@ int main(int argc, char ** argv) {
     // Read the file one block at a time. In the real world, there would be a
     // lot of error-handling code here.
     __u32 bytes_left;
-    for (int i = 0; i < EXT2_NDIR_BLOCKS; i++) {
-        bytes_left = size - bytes_read;
-        if (bytes_left == 0) break;
-        __u32 bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
-        void * block = get_block(fs, target_ino->i_block[i]);
-        memcpy(buf + bytes_read, block, bytes_to_read);
-        bytes_read += bytes_to_read;
+
+
+    void* block = NULL;
+    __u32 bytes_cpy;
+
+    for (int i = 0; i < EXT2_N_BLOCKS - 1; i++) {
+        //retrieve block
+        block = get_block(fs, target_ino->i_block[i]);
+        if(i < EXT2_DIND_BLOCK - 1){  
+            bytes_left = size - bytes_read;
+            printf("%s:%d\n","left",bytes_left );
+            if(bytes_left != 0){
+                bytes_cpy = bytes_left;
+                printf("%s:%d\n","read",bytes_cpy );
+
+                memcpy(buf + bytes_read, block, bytes_cpy);
+                bytes_read += bytes_cpy; 
+            }
+            else break;
+            
+        }
+        else if(i == EXT2_DIND_BLOCK - 1){
+        __u32 j;
+        void* indir = NULL;
+        for(j=0;j<(block_size / sizeof(__u32));j++)
+            {
+                bytes_left = size - bytes_read;
+                printf("%s:%d\n","left",bytes_left );
+                if (bytes_left != 0) break;
+                bytes_cpy = bytes_left;
+                printf("%s:%d\n","read",bytes_cpy );
+                indir = get_block(fs, *(__u32*)(block+j*sizeof(__u32)));
+
+                printf("sdfds%p\n",indir);
+                memcpy(buf + bytes_read, indir, bytes_cpy);
+                bytes_read += bytes_cpy;
+            }
+        }
+
+        /*******************/
+        else if(i == EXT2_TIND_BLOCK - 1){
+        __u32 j, k;
+        void* indir_2 = NULL;
+            for(j=0;j<(block_size / sizeof(__u32));j++){
+                indir_2 = get_block(fs, *(__u32*)(block+(j*sizeof(__u32))));
+                printf("%p\n",indir_2);
+                for(k=0;k<(block_size / sizeof(__u32));k++){
+                    bytes_left = size - bytes_read;
+
+                    printf("%s:%d\n","3left",bytes_left );
+                    if (bytes_left == 0) break;
+                    bytes_cpy = bytes_left;
+                    printf("%s:%d\n","read",bytes_cpy );
+                    memcpy(buf + bytes_read, indir_2, bytes_cpy);
+                    bytes_read += bytes_cpy;
+                }
+            }
+        }
     }
 
     write(1, buf, bytes_read);
