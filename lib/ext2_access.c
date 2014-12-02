@@ -64,15 +64,22 @@ struct ext2_inode * get_inode(void * fs, __u32 inode_num) {
 //  High-level code for accessing filesystem components by path.
 ///////////////////////////////////////////////////////////
 
+// Return number of "/" in given path
+// split_path("/a/b/c") will return 3
+int get_number_of_slashes(char * path) {
+    int num_slashes = 0;
+    for (char * slash = path; slash != NULL; slash = strchr(slash + 1, '/')) {
+        num_slashes++;
+    }
+    return num_slashes;
+}
+
 // Chunk a filename into pieces.
 // split_path("/a/b/c") will return {"a", "b", "c"}.
 //
 // This one's a freebie.
 char ** split_path(char * path) {
-    int num_slashes = 0;
-    for (char * slash = path; slash != NULL; slash = strchr(slash + 1, '/')) {
-        num_slashes++;
-    }
+    int num_slashes = get_number_of_slashes(path);
 
     // Copy out each piece by advancing two pointers (piece_start and slash).
     char ** parts = (char **) calloc(num_slashes, sizeof(char *));
@@ -138,7 +145,36 @@ __u32 get_inode_from_dir(void * fs, struct ext2_inode * dir,
 // Find the inode number for a file by its full path.
 // This is the functionality that ext2cat ultimately needs.
 __u32 get_inode_by_path(void * fs, char * path) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_inode_by_path(fs, path);
+    int num_slashes = get_number_of_slashes(path);
+    char ** pathComponents = split_path(path);
+    struct ext2_inode * dir = get_root_dir(fs);
+    __u32 inode = 0;
+    for (int i = 0; i < num_slashes; i++) {
+        // look up inode of ith part of path
+        //printf("%s\n", pathComponents[i]);
+        inode = get_inode_from_dir(fs, dir, pathComponents[i]);
+        // verify it is valid
+        if (inode == 0) {
+            // invalid so return 0
+            //printf("Invalid inode (0)\n");
+            return 0;
+        }
+        // verify that it is directory if i < num_slashes - 1
+        if (i < num_slashes - 1) {
+            dir = get_inode(fs,inode);
+            // can't find right constant for this (value for dir is 16832)
+            // so going to leave out error checking for now
+            //if (dir->i_mode != LINUX_S_IFDIR) {
+                 // error path is too long
+            //     printf("Error path is too long\n");
+            //     return 0;
+            //}
+        }
+    }
+    // need to error check that inode is for file and not directory?
+
+    return inode;
+    //printf("%d vs %d\n", _ref_get_inode_by_path(fs, path), inode);
+    //return _ref_get_inode_by_path(fs, path);
 }
 
