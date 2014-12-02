@@ -39,7 +39,7 @@ int main(int argc, char ** argv) {
 
     void* block = NULL;
     __u32 bytes_cpy;
-    __u32 inode_blocks = (block_size / sizeof(__u32));
+    __u32 inode_blocks = (__u32)(block_size / sizeof(__u32));
 
     for (int i = 0; i < EXT2_N_BLOCKS-1; i++) {
         //retrieve block
@@ -59,29 +59,26 @@ int main(int argc, char ** argv) {
         }
         else if(i == EXT2_DIND_BLOCK){
         void* new_dir = NULL;
-        for(__u32 j=0;j<inode_blocks;j++)
-            {
-                bytes_left = size - bytes_read;
-                // printf("%s:%d\n","left",bytes_left );
-                if (bytes_left != 0) {
-                    bytes_cpy = max(bytes_left,block_size);
-                    // printf("%s:%d\n","read",bytes_cpy );
-                    new_dir = get_block(fs, *(__u32*)(block+j*sizeof(__u32)));
+            for(__u32 j=0;j<inode_blocks;j++){
+                    bytes_left = size - bytes_read;
+                    // printf("%s:%d\n","left",bytes_left );
+                    if (bytes_left != 0) {
+                        bytes_cpy = max(bytes_left,block_size);
+                        // printf("%s:%d\n","read",bytes_cpy );
+                        new_dir = get_block(fs, *(__u32*)(block+j*sizeof(__u32)));
 
-                    // printf("sdfds%p\n",new_dir);
-                    memcpy(buf + bytes_read, new_dir, bytes_cpy);
-                    bytes_read += bytes_cpy;
-                }
+                        // printf("sdfds%p\n",new_dir);
+                        memcpy(buf + bytes_read, new_dir, bytes_cpy);
+                        bytes_read += bytes_cpy;
+                    }
 
-                else break;
-                
+                    else break;   
             }
         }
 
         /*******************/
         else if(i == EXT2_TIND_BLOCK){
-
-        void* new_dir__ = NULL;
+            void* new_dir__ = NULL;
             for(__u32 j=0;j<inode_blocks;j++){
                 new_dir__ = get_block(fs, *(__u32*)(block+(j*sizeof(__u32))));
                 // printf("%p\n",new_dir__);
