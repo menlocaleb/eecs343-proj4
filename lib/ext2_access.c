@@ -24,7 +24,6 @@ struct ext2_super_block * get_super_block(void * fs) {
 
 // Return the block size for a filesystem.
 __u32 get_block_size(void * fs) {
-    // FIXME: Uses reference implementation.
     return EXT2_BLOCK_SIZE(get_super_block(fs));
     //return _ref_get_block_size(fs);
 }
@@ -33,17 +32,23 @@ __u32 get_block_size(void * fs) {
 // Return a pointer to a block given its number.
 // get_block(fs, 0) == fs;
 void * get_block(void * fs, __u32 block_num) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_block(fs, block_num);
-}
-
+    return (void*) (char*)fs + block_num*get_block_size(fs); 
+    //return _ref_get_block(fs, block_num); 
+} 
 
 // Return a pointer to the first block group descriptor in a filesystem. Real
 // ext2 filesystems will have several of these, but, for simplicity, we will
 // assume there is only one.
 struct ext2_group_desc * get_block_group(void * fs, __u32 block_group_num) {
-    // FIXME: Uses reference implementation.
-    return _ref_get_block_group(fs, block_group_num);
+    // get pointer to start of block group descriptor table
+    struct ext2_super_block * superBlock = get_super_block(fs);
+    // added 2 to get it to work, thought it should be 1 !!!?
+    __u32 blockGroupDescriptorFirstBlock = superBlock->s_first_data_block + 2;
+    return (struct ext2_group_desc *) get_block(fs, blockGroupDescriptorFirstBlock);
+    printf("%p\n", get_block(fs, blockGroupDescriptorFirstBlock));
+    // add offset for block_group_num ?
+    printf("%p\n", _ref_get_block_group(fs, block_group_num));
+    //return _ref_get_block_group(fs, block_group_num);
 }
 
 
