@@ -4,9 +4,9 @@
 #include "ext2_access.h"
 #include "mmapfs.h"
 
-#ifndef max
-    #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#endif
+// #ifndef max
+//     #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
+// #endif
 
 int main(int argc, char ** argv) {
     // Extract the file given in the second argument from the filesystem image
@@ -47,38 +47,36 @@ int main(int argc, char ** argv) {
 
 
     void* block = NULL;
-    __u32 bytes_cpy;
+    __u32 bytes_to_read;
     __u32 inode_blocks = (__u32)(block_size / sizeof(__u32));
 
     for (int i = 0; i < EXT2_N_BLOCKS-1; i++) {
         //retrieve block
         block = get_block(fs, target_ino->i_block[i]);
-        if(i < EXT2_DIND_BLOCK){  
+        if(i < EXT2_DIND_BLOCK-1){  
             bytes_left = size - bytes_read;
-            // printf("%s:%d\n","left",bytes_left );
-            if(bytes_left != 0){
-                bytes_cpy = max(bytes_left,block_size);
-                // printf("%s:%d\n","read",bytes_cpy );
-
-                memcpy(buf + bytes_read, block, bytes_cpy);
-                bytes_read += bytes_cpy; 
-            }
-            else break;
+            if (bytes_left == 0) break;
+            bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
+            void * block = get_block(fs, target_ino->i_block[i]);
+            memcpy(buf + bytes_read, block, bytes_to_read);
+            bytes_read += bytes_to_read;
             
         }
-        else if(i == EXT2_DIND_BLOCK){
+
+        else if(i == EXT2_DIND_BLOCK-1){
         void* new_dir = NULL;
-            for(__u32 j=0;j<inode_blocks;j++){
+        __u32 j;
+            for(j=0;j<inode_blocks;j++){
                     bytes_left = size - bytes_read;
                     // printf("%s:%d\n","left",bytes_left );
                     if (bytes_left != 0) {
-                        bytes_cpy = max(bytes_left,block_size);
-                        // printf("%s:%d\n","read",bytes_cpy );
+                        bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
+                        // printf("%s:%d\n","read",bytes_to_read );
                         new_dir = get_block(fs, *(__u32*)(block+j*sizeof(__u32)));
 
                         // printf("sdfds%p\n",new_dir);
-                        memcpy(buf + bytes_read, new_dir, bytes_cpy);
-                        bytes_read += bytes_cpy;
+                        memcpy(buf + bytes_read, new_dir, bytes_to_read);
+                        bytes_read += bytes_to_read;
                     }
 
                     else break;   
@@ -86,20 +84,20 @@ int main(int argc, char ** argv) {
         }
 
         /*******************/
-        else if(i == EXT2_TIND_BLOCK){
+        else if(i == EXT2_TIND_BLOCK -1){
             void* new_dir__ = NULL;
-            for(__u32 j=0;j<inode_blocks;j++){
+            __u32 j, k;
+            for(j=0;j<inode_blocks;j++){
                 new_dir__ = get_block(fs, *(__u32*)(block+(j*sizeof(__u32))));
                 // printf("%p\n",new_dir__);
-                for(__u32 k=0;k<inode_blocks;k++){
-                    bytes_cpy = max(bytes_left,block_size);
-
+                for(k=0;k<inode_blocks;k++){
+                    bytes_left = size - bytes_read;
                     // printf("%s:%d\n","3left",bytes_left );
                     if (bytes_left != 0) {
-                        bytes_cpy = bytes_left;
-                        // printf("%s:%d\n","read",bytes_cpy );
-                        memcpy(buf + bytes_read, new_dir__, bytes_cpy);
-                        bytes_read += bytes_cpy;
+                        bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
+                        // printf("%s:%d\n","read",bytes_to_read );
+                        memcpy(buf + bytes_read, new_dir__, bytes_to_read);
+                        bytes_read += bytes_to_read;
                     }
                     else break;
                     
