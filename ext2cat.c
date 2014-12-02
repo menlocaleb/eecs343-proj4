@@ -4,6 +4,9 @@
 #include "ext2_access.h"
 #include "mmapfs.h"
 
+#ifndef max
+    #define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
+#endif
 
 int main(int argc, char ** argv) {
     // Extract the file given in the second argument from the filesystem image
@@ -36,16 +39,17 @@ int main(int argc, char ** argv) {
 
     void* block = NULL;
     __u32 bytes_cpy;
+    __u32 inode_blocks = (block_size / sizeof(__u32));
 
-    for (int i = 0; i < EXT2_N_BLOCKS - 1; i++) {
+    for (int i = 0; i < EXT2_N_BLOCKS-1; i++) {
         //retrieve block
         block = get_block(fs, target_ino->i_block[i]);
-        if(i < EXT2_DIND_BLOCK - 1){  
+        if(i < EXT2_DIND_BLOCK){  
             bytes_left = size - bytes_read;
-            printf("%s:%d\n","left",bytes_left );
+            // printf("%s:%d\n","left",bytes_left );
             if(bytes_left != 0){
-                bytes_cpy = bytes_left;
-                printf("%s:%d\n","read",bytes_cpy );
+                bytes_cpy = max(bytes_left,block_size);
+                // printf("%s:%d\n","read",bytes_cpy );
 
                 memcpy(buf + bytes_read, block, bytes_cpy);
                 bytes_read += bytes_cpy; 
@@ -53,40 +57,46 @@ int main(int argc, char ** argv) {
             else break;
             
         }
-        else if(i == EXT2_DIND_BLOCK - 1){
-        __u32 j;
-        void* indir = NULL;
-        for(j=0;j<(block_size / sizeof(__u32));j++)
+        else if(i == EXT2_DIND_BLOCK){
+        void* new_dir = NULL;
+        for(__u32 j=0;j<inode_blocks;j++)
             {
                 bytes_left = size - bytes_read;
-                printf("%s:%d\n","left",bytes_left );
-                if (bytes_left != 0) break;
-                bytes_cpy = bytes_left;
-                printf("%s:%d\n","read",bytes_cpy );
-                indir = get_block(fs, *(__u32*)(block+j*sizeof(__u32)));
+                // printf("%s:%d\n","left",bytes_left );
+                if (bytes_left != 0) {
+                    bytes_cpy = max(bytes_left,block_size);
+                    // printf("%s:%d\n","read",bytes_cpy );
+                    new_dir = get_block(fs, *(__u32*)(block+j*sizeof(__u32)));
 
-                printf("sdfds%p\n",indir);
-                memcpy(buf + bytes_read, indir, bytes_cpy);
-                bytes_read += bytes_cpy;
+                    // printf("sdfds%p\n",new_dir);
+                    memcpy(buf + bytes_read, new_dir, bytes_cpy);
+                    bytes_read += bytes_cpy;
+                }
+
+                else break;
+                
             }
         }
 
         /*******************/
-        else if(i == EXT2_TIND_BLOCK - 1){
-        __u32 j, k;
-        void* indir_2 = NULL;
-            for(j=0;j<(block_size / sizeof(__u32));j++){
-                indir_2 = get_block(fs, *(__u32*)(block+(j*sizeof(__u32))));
-                printf("%p\n",indir_2);
-                for(k=0;k<(block_size / sizeof(__u32));k++){
-                    bytes_left = size - bytes_read;
+        else if(i == EXT2_TIND_BLOCK){
 
-                    printf("%s:%d\n","3left",bytes_left );
-                    if (bytes_left == 0) break;
-                    bytes_cpy = bytes_left;
-                    printf("%s:%d\n","read",bytes_cpy );
-                    memcpy(buf + bytes_read, indir_2, bytes_cpy);
-                    bytes_read += bytes_cpy;
+        void* new_dir__ = NULL;
+            for(__u32 j=0;j<inode_blocks;j++){
+                new_dir__ = get_block(fs, *(__u32*)(block+(j*sizeof(__u32))));
+                // printf("%p\n",new_dir__);
+                for(__u32 k=0;k<inode_blocks;k++){
+                    bytes_cpy = max(bytes_left,block_size);
+
+                    // printf("%s:%d\n","3left",bytes_left );
+                    if (bytes_left != 0) {
+                        bytes_cpy = bytes_left;
+                        // printf("%s:%d\n","read",bytes_cpy );
+                        memcpy(buf + bytes_read, new_dir__, bytes_cpy);
+                        bytes_read += bytes_cpy;
+                    }
+                    else break;
+                    
                 }
             }
         }
