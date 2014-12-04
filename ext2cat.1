@@ -1,14 +1,18 @@
-DOC 
-In this project, we implemented all of the functions required to make the reference binary not needed, as well as the indirect blocks for extra points.
+.TH EXT2CAT 1 "Filesystems" "Northwestern University EECS 343 Operating System - Fall 2014"
+.SH NAME 
+ext2cat
+.SH DESCRIPTION
+.B
+A read-only driver for ext2, a standard filesystem supported by the Linux kernel.
+.SH BUILT-IN COMMANDS
+ext2cat <filesystem_image> <path_within_filesystem>
 
-Team members:
-Xiaoyang Tan xto633
-Caleb Young csy519
-
-Approach:
+.SH DESIGN APPROACH
+.B 
 Our approach, as suggested in the project handout, was to start with the lower-level tasks and work up to the more complete and high-level tasks. This meant working from the top to bottom of lib/ext2_access.c file. Before we did this however, we read through the online documentation for the ext2 specification, as well as looked through the ext2fs.h header. Looking through the ext2fs.h header was especially important, as it provided all of the structs, constants and macros we needed to complete the required functions.
 
-Detailed Overview:
+.SH Detailed Overview
+.B
 A nice property of the way the ext2_access.c file was laid out was that each function depended on the one before it, which created a very real sense of progress and security knowing that we were going in the right direction with our code. The first three functions were very low-level and specific - the first required only a constant from ext2fs.h, the second required the first function plus a macro from ext2fs.h, and the third depended only on the second function.
 
 The fourth function, get_block_group(), provided the first real challenge and application of theory. The goal of this function was to return a pointer to the start of the block which described the different block groups. The tricky part is that depending on the filesystem formatting, the block number for this data can change. After some experimenting though, we determined that this block resided 2 blocks after the block the super-block started in. More general ext2 code should dynamically determine this offset, but for our mock filesystem it worked perfectly.
@@ -17,13 +21,16 @@ The fifth function, get_inode(), was made easier by the assumption that there wa
 
 The sixth and seventh functions were "high-level" functions and delt with getting a file or directory's inode from a directory indoe, and getting a file inode from a path. The search for a file/directory within a directory was a simple linear search through a linked-list array of directory entries, and by using strncmp() we could check the directory entry's name against the desired name. For getting a file inode from a path, we split out a helper function which would give us the number of slashes in a path, as well as used the given helper function which split up a path into an array of directory/file names. We then simply looped through this list of directory/file names, and for each one updated a pointer to the current directory's inode. If we were on the last iteration, we didn't search anymore because we had found the file! If during our looping we got an inode of 0, we knew the path was wrong and return 0 from the function.
 
-Future Improvements:
+.SH Future Improvements
+.B
 One area our code could improve would be error checking and general robustness. For this project we used a few simplifying assumptions given to us, for instance the fact that there was only one block group, or that our code only had to work with one file system and didn't have to respond to changing block sizes or offsets. Another specific error check we could have done would be to check if an input path was too long, and it treated a file like a directory. However, given the learning nature of the project and the fact that all our tests pass, we feel confident in and proud of our code.
 
-Extra Credit:
+.SH EXTRA CREDIT
+.B
 We also completed the extra credit by altering ext2cat.c to handle files big enough to use indirect blocks in the file system.
 Inode contains direct pointers to the data block of a file. If the file is too big to serve the direct pointer. Therefore, indirect pointer is needed so that each of the pointer point to a block that contains the pointer to data blocks. We can use varialbe bytes_read to track how many bytes has been readed, and compare it with the file size. We access the indirect block right after reading direct block, first retrive the pointer of the data block, then go for the data. The implementation is in ext2cat.c.
 
+.SH AUTHOR
+Xiaoyang Tan - xto633 xiaoyangtan2013@u.northwestern.edu
 
-
-
+Caleb Young - csy519 calebyoung2015@u.northwestern.edu
