@@ -35,16 +35,8 @@ int main(int argc, char ** argv) {
     // Read the file one block at a time. In the real world, there would be a
     // lot of error-handling code here.
     __u32 bytes_left;
-    // for (int i = 0; i < EXT2_NDIR_BLOCKS; i++) {
-    //     bytes_left = size - bytes_read;
-    //     if (bytes_left == 0) break;
-    //     __u32 bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
-    //     void * block = get_block(fs, target_ino->i_block[i]);
-    //     memcpy(buf + bytes_read, block, bytes_to_read);
-    //     bytes_read += bytes_to_read;
-    // }
 
-
+    /* Old block reading code was here, changed for extra credit */
 
     void* block = NULL;
     __u32 bytes_to_read;
@@ -68,13 +60,10 @@ int main(int argc, char ** argv) {
         __u32 j;
             for(j=0;j<inode_blocks;j++){
                     bytes_left = size - bytes_read;
-                    // printf("%s:%d\n","left",bytes_left );
                     if (bytes_left != 0) {
                         bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
-                        // printf("%s:%d\n","read",bytes_to_read );
                         new_dir = get_block(fs, *(__u32*)(block+j*sizeof(__u32)));
 
-                        // printf("sdfds%p\n",new_dir);
                         memcpy(buf + bytes_read, new_dir, bytes_to_read);
                         bytes_read += bytes_to_read;
                     }
@@ -89,13 +78,10 @@ int main(int argc, char ** argv) {
             __u32 j, k;
             for(j=0;j<inode_blocks;j++){
                 new_dir__ = get_block(fs, *(__u32*)(block+(j*sizeof(__u32))));
-                // printf("%p\n",new_dir__);
                 for(k=0;k<inode_blocks;k++){
                     bytes_left = size - bytes_read;
-                    // printf("%s:%d\n","3left",bytes_left );
                     if (bytes_left != 0) {
                         bytes_to_read = bytes_left > block_size ? block_size : bytes_left;
-                        // printf("%s:%d\n","read",bytes_to_read );
                         memcpy(buf + bytes_read, new_dir__, bytes_to_read);
                         bytes_read += bytes_to_read;
                     }
@@ -107,11 +93,6 @@ int main(int argc, char ** argv) {
     }
 
     write(1, buf, bytes_read);
-    if (bytes_read < size) {
-        printf("%s: file uses indirect blocks. output was truncated!\n",
-               argv[0]);
-    }
-
     return 0;
 }
 

@@ -4,7 +4,7 @@
 // This header allows your project to link against the reference library. If you
 // complete the entire project, you should be able to remove this directive and
 // still compile your code.
-#include "reference_implementation.h"
+//#include "reference_implementation.h"
 
 // Definitions for ext2cat to compile against.
 #include "ext2_access.h"
@@ -17,6 +17,7 @@
 
 // Return a pointer to the primary superblock of a filesystem.
 struct ext2_super_block * get_super_block(void * fs) {
+    // super block is alwasy specified offset from start of file system
     return (struct ext2_super_block *) (char*)fs + SUPERBLOCK_OFFSET;
 }
 
@@ -37,12 +38,12 @@ void * get_block(void * fs, __u32 block_num) {
 // ext2 filesystems will have several of these, but, for simplicity, we will
 // assume there is only one.
 struct ext2_group_desc * get_block_group(void * fs, __u32 block_group_num) {
-    // get pointer to start of block group descriptor table
     struct ext2_super_block * superBlock = get_super_block(fs);
+    // get pointer to start of block group descriptor table
     // added 2 to get it to work, thought it should be 1 !!!?
     __u32 blockGroupDescriptorFirstBlock = superBlock->s_first_data_block + 2;
     return (struct ext2_group_desc *) get_block(fs, blockGroupDescriptorFirstBlock);
-    // add offset for block_group_num ?
+    // didn't add offset for block_group_num b/c assumption that only one block group
 }
 
 
@@ -113,13 +114,11 @@ struct ext2_inode * get_root_dir(void * fs) {
 // name should be a single component: "foo.txt", not "/files/foo.txt".
 __u32 get_inode_from_dir(void * fs, struct ext2_inode * dir, 
         char * name) {
-// can assert EXT2_S_IFDIR stored in the i_mode field of the inode structure to make sure dir
-
     // get data block number from inode then get pointer
-    // for now assume whole directory on single block
+    // assume whole directory on single block
     __u32 directoryEntriesBlock = dir->i_block[0];
     struct ext2_dir_entry * dirEntry = (struct ext2_dir_entry*) get_block(fs,directoryEntriesBlock);
-    // follow linked list until inode is 0
+    // follow linked list until inode is 0 or find file we want
     while (dirEntry->inode != 0) {
         // strncmp is necessary b/c for some reason some dirEntries have extra byte of data, so limit
         // length of search to length of input name
@@ -127,18 +126,12 @@ __u32 get_inode_from_dir(void * fs, struct ext2_inode * dir,
             return dirEntry->inode;
         }
         else {
-            //printf("rec_len: %d\n", dirEntry->rec_len);
-            //printf("before: %p\n", dirEntry);
-            //struct ext2_dir_entry * oldDirEntry = dirEntry;
+            // this directory entry isn't the right one, move onto the next one
             dirEntry = (struct ext2_dir_entry *) (((char*)dirEntry) + dirEntry->rec_len);
-            //printf("after: %p\n", dirEntry);
-            //printf("difference: %d\n", dirEntry-oldDirEntry);
-            //printf("new-inode: %d\n", dirEntry->inode);
         }
     }
 
     return 0;
-    //return _ref_get_inode_from_dir(fs, dir, name);
 }
 
 
@@ -149,17 +142,15 @@ __u32 get_inode_by_path(void * fs, char * path) {
     char ** pathComponents = split_path(path);
     struct ext2_inode * dir = get_root_dir(fs);
     __u32 inode = 0;
+    // loop through each part of path to file
     for (int i = 0; i < num_slashes; i++) {
         // look up inode of ith part of path
-        //printf("%s\n", pathComponents[i]);
         inode = get_inode_from_dir(fs, dir, pathComponents[i]);
-        // verify it is valid
+        // check if invalid
         if (inode == 0) {
-            // invalid so return 0
-            //printf("Invalid inode (0)\n");
             return 0;
         }
-        // verify that it is directory if i < num_slashes - 1
+        // unless last iteration update inode entry to next file/directory
         if (i < num_slashes - 1) {
             dir = get_inode(fs,inode);
             // can't find right constant for this (value for dir is 16832)
@@ -171,10 +162,6 @@ __u32 get_inode_by_path(void * fs, char * path) {
             //}
         }
     }
-    // need to error check that inode is for file and not directory?
 
     return inode;
-    //printf("%d vs %d\n", _ref_get_inode_by_path(fs, path), inode);
-    //return _ref_get_inode_by_path(fs, path);
 }
-
